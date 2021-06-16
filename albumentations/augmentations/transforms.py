@@ -87,6 +87,7 @@ class PadIfNeeded(DualTransform):
         min_width (int): minimal result image width.
         pad_height_divisor (int): if not None, ensures image height is dividable by value of this argument.
         pad_width_divisor (int): if not None, ensures image width is dividable by value of this argument.
+        size_ratio(float): result image size ratio by original image size.
         border_mode (OpenCV flag): OpenCV border mode.
         value (int, float, list of int, list of float): padding value if border_mode is cv2.BORDER_CONSTANT.
         mask_value (int, float,
@@ -107,6 +108,7 @@ class PadIfNeeded(DualTransform):
         min_width: Optional[int] = 1024,
         pad_height_divisor: Optional[int] = None,
         pad_width_divisor: Optional[int] = None,
+        size_ration: Optional[float] = None,
         border_mode=cv2.BORDER_REFLECT_101,
         value=None,
         mask_value=None,
@@ -124,6 +126,7 @@ class PadIfNeeded(DualTransform):
         self.min_width = min_width
         self.pad_width_divisor = pad_width_divisor
         self.pad_height_divisor = pad_height_divisor
+        self.size_ratio = size_ratio
         self.border_mode = border_mode
         self.value = value
         self.mask_value = mask_value
@@ -132,6 +135,11 @@ class PadIfNeeded(DualTransform):
         params = super(PadIfNeeded, self).update_params(params, **kwargs)
         rows = params["rows"]
         cols = params["cols"]
+
+        if self.size_ratio is not None:
+            ratio = random.uniform(0.0, self.size_ratio)
+            self.min_height = rows + int(rows * ratio)
+            self.min_width = cols + int(cols * ratio)
 
         if self.min_height is not None:
             if rows < self.min_height:
