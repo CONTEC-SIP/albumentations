@@ -108,7 +108,7 @@ class PadIfNeeded(DualTransform):
         min_width: Optional[int] = 1024,
         pad_height_divisor: Optional[int] = None,
         pad_width_divisor: Optional[int] = None,
-        size_ration: Optional[float] = None,
+        size_ratio: Optional[float] = None,
         border_mode=cv2.BORDER_REFLECT_101,
         value=None,
         mask_value=None,
