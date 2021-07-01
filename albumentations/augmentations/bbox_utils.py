@@ -67,6 +67,10 @@ def normalize_bbox(bbox, rows, cols):
         ValueError: If rows or cols is less or equal zero
 
     """
+    # Index of bbox array begins from 0
+    cols -= 1
+    rows -= 1
+
     (x_min, y_min, x_max, y_max), tail = bbox[:4], tuple(bbox[4:])
 
     if rows <= 0:
@@ -96,6 +100,10 @@ def denormalize_bbox(bbox, rows, cols):
         ValueError: If rows or cols is less or equal zero
 
     """
+    # Index of bbox array begins from 0
+    cols -= 1
+    rows -= 1
+
     (x_min, y_min, x_max, y_max), tail = bbox[:4], tuple(bbox[4:])
 
     if rows <= 0:
