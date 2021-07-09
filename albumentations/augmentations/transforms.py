@@ -681,7 +681,7 @@ class Cutout(ImageOnlyTransform):
         return ("num_holes", "max_h_size", "max_w_size")
 
 
-class CoarseDropout(DualTransform):
+class CoarseDropout(ImageOnlyTransform):
     """CoarseDropout of the rectangular regions in the image.
 
     Args:
