@@ -1,14 +1,56 @@
-import cv2
 import math
+from typing import List, Optional, Sequence, Tuple, Union
+
+import cv2
 import numpy as np
 import skimage.transform
-
 from scipy.ndimage.filters import gaussian_filter
 
+from ... import random_utils
 from ..bbox_utils import denormalize_bbox, normalize_bbox
-from ..functional import angle_2pi_range, preserve_channel_dim, _maybe_process_in_chunks, preserve_shape, clipped
+from ..functional import (
+    _maybe_process_in_chunks,
+    angle_2pi_range,
+    clipped,
+    preserve_channel_dim,
+    preserve_shape,
+)
 
-from typing import Union, List, Sequence, Tuple, Optional
+__all__ = [
+    "bbox_rot90",
+    "keypoint_rot90",
+    "rotate",
+    "bbox_rotate",
+    "keypoint_rotate",
+    "shift_scale_rotate",
+    "keypoint_shift_scale_rotate",
+    "bbox_shift_scale_rotate",
+    "elastic_transform",
+    "resize",
+    "scale",
+    "keypoint_scale",
+    "py3round",
+    "_func_max_size",
+    "longest_max_size",
+    "smallest_max_size",
+    "perspective",
+    "perspective_bbox",
+    "rotation2DMatrixToEulerAngles",
+    "perspective_keypoint",
+    "_is_identity_matrix",
+    "warp_affine",
+    "keypoint_affine",
+    "bbox_affine",
+    "safe_rotate",
+    "bbox_safe_rotate",
+    "keypoint_safe_rotate",
+    "safe_rotate_enlarged_img_size",
+    "piecewise_affine",
+    "to_distance_maps",
+    "from_distance_maps",
+    "keypoint_piecewise_affine",
+    "bbox_piecewise_affine",
+]
 
 
 def bbox_rot90(bbox, factor, rows, cols):  # skipcq: PYL-W0613
@@ -199,18 +241,16 @@ def elastic_transform(
     value=None,
     random_state=None,
     approximate=False,
+    same_dxdy=False,
 ):
     """Elastic deformation of images as described in [Simard2003]_ (with modifications).
-    Based on https://gist.github.com/erniejunior/601cdf56d2b424757de5
+    Based on https://gist.github.com/ernestum/601cdf56d2b424757de5
 
     .. [Simard2003] Simard, Steinkraus and Platt, "Best Practices for
          Convolutional Neural Networks applied to Visual Document Analysis", in
          Proc. of the International Conference on Document Analysis and
          Recognition, 2003.
     """
-    if random_state is None:
-        random_state = np.random.RandomState(1234)
-
     height, width = img.shape[:2]
 
     # Random affine
@@ -227,7 +267,9 @@ def elastic_transform(
             center_square - square_size,
         ]
     )
-    pts2 = pts1 + random_state.uniform(-alpha_affine, alpha_affine, size=pts1.shape).astype(np.float32)
+    pts2 = pts1 + random_utils.uniform(-alpha_affine, alpha_affine, size=pts1.shape, random_state=random_state).astype(
+        np.float32
+    )
     matrix = cv2.getAffineTransform(pts1, pts2)
 
     warp_fn = _maybe_process_in_chunks(
@@ -238,16 +280,27 @@ def elastic_transform(
     if approximate:
         # Approximate computation smooth displacement map with a large enough kernel.
         # On large images (512+) this is approximately 2X times faster
-        dx = random_state.rand(height, width).astype(np.float32) * 2 - 1
+        dx = random_utils.rand(height, width, random_state=random_state).astype(np.float32) * 2 - 1
         cv2.GaussianBlur(dx, (17, 17), sigma, dst=dx)
         dx *= alpha
-
-        dy = random_state.rand(height, width).astype(np.float32) * 2 - 1
-        cv2.GaussianBlur(dy, (17, 17), sigma, dst=dy)
-        dy *= alpha
+        if same_dxdy:
+            # Speed up even more
+            dy = dx
+        else:
+            dy = random_utils.rand(height, width, random_state=random_state).astype(np.float32) * 2 - 1
+            cv2.GaussianBlur(dy, (17, 17), sigma, dst=dy)
+            dy *= alpha
     else:
-        dx = np.float32(gaussian_filter((random_state.rand(height, width) * 2 - 1), sigma) * alpha)
-        dy = np.float32(gaussian_filter((random_state.rand(height, width) * 2 - 1), sigma) * alpha)
+        dx = np.float32(
+            gaussian_filter((random_utils.rand(height, width, random_state=random_state) * 2 - 1), sigma) * alpha
+        )
+        if same_dxdy:
+            # Speed up
+            dy = dx
+        else:
+            dy = np.float32(
+                gaussian_filter((random_utils.rand(height, width, random_state=random_state) * 2 - 1), sigma) * alpha
+            )
 
     x, y = np.meshgrid(np.arange(width), np.arange(height))
 
@@ -720,7 +773,7 @@ def from_distance_maps(
         else:
             found = True
         if found:
-            keypoints.append((hitidx_ndim[1], hitidx_ndim[0]))
+            keypoints.append((float(hitidx_ndim[1]), float(hitidx_ndim[0])))
         else:
             if not drop_if_not_found:
                 keypoints.append((if_not_found_x, if_not_found_y))
