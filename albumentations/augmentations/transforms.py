@@ -679,7 +679,6 @@ class Normalize(ImageOnlyTransform):
         return ("mean", "std", "max_pixel_value")
 
 
-<<<<<<< HEAD
 class Cutout(ImageOnlyTransform):
     """CoarseDropout of the square regions in the image.
 
